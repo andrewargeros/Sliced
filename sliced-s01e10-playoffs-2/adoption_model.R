@@ -3,6 +3,7 @@ library(tidymodels)
 library(shieldsthemes)
 library(glue)
 library(lubridate)
+library(treesnip)
 
 file_path = "C:/RScripts/Sliced/sliced-s01e10-playoffs-2"
 dataset = read_csv(glue("{file_path}/train.csv"))
@@ -27,6 +28,7 @@ data = dataset %>%
          pitbull = ifelse(str_detect(breed, "Pitbull"), 1, 0)) %>% 
   transform(age_at_out = as.numeric(age_at_out)) %>% 
   mutate_if(is.character, as.factor) %>% 
+  mutate_if(is.integer, as.numeric) %>% 
   select(-c(breed, color, name, animal_type, age_upon_outcome, date_of_birth))
   
 data %>% 
@@ -57,6 +59,7 @@ split = initial_split(data, 0.66)
 train = training(split)
 test = testing(split)
 
+train_fold = vfold_cv(train, 5)
 ## Make Model Spec --------------------------------------------------------------------------------
 
 rec = train %>% 
@@ -65,12 +68,21 @@ rec = train %>%
   update_role(id, new_role = "ID") %>% 
   step_holiday(datetime) %>% 
   step_rm(datetime) %>% 
-  step_
   prep()
 
 model = rand_forest(trees = 1000, min_n = 5, mtry = 8) %>% 
   set_mode("classification") %>% 
   set_engine("ranger")
+
+catboost_model = boost_tree(trees = 1000, learn_rate = 0.05) %>%
+  set_mode("classification") %>% 
+  set_engine("catboost", loss_function = "MultiClass")
+
+cb_wf = workflow() %>% 
+  add_model(catboost_model) %>% 
+  add_recipe(rec)
+
+cb_fit = cb_wf %>% fit(train)
 
 wf = workflow() %>% 
   add_model(model) %>% 
