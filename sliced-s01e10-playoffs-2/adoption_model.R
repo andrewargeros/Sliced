@@ -29,7 +29,8 @@ data = dataset %>%
   transform(age_at_out = as.numeric(age_at_out)) %>% 
   mutate_if(is.character, as.factor) %>% 
   mutate_if(is.integer, as.numeric) %>% 
-  select(-c(breed, color, name, animal_type, age_upon_outcome, date_of_birth))
+  select(-c(breed, color, name, animal_type, age_upon_outcome, date_of_birth))# %>% 
+  # mutate(outcome_type = as.integer(outcome_type)-1)
   
 data %>% 
   group_by(animal_type_fix, outcome_type) %>% 
@@ -53,6 +54,7 @@ data %>%
   summarise(n())
 
 ## Make Split -------------------------------------------------------------------------------------
+
 set.seed(15)
 
 split = initial_split(data, 0.66)
@@ -60,6 +62,7 @@ train = training(split)
 test = testing(split)
 
 train_fold = vfold_cv(train, 5)
+
 ## Make Model Spec --------------------------------------------------------------------------------
 
 rec = train %>% 
